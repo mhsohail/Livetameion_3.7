@@ -13,5 +13,10 @@ namespace Nop.Core.Domain.Catalog
         /// Grouped (product with variants)
         /// </summary>
         GroupedProduct = 10,
+        Car = 15,
+        Hotel = 20,
+        Restaurant = 25,
+        GroupDeal = 30,
+        Food = 35
     }
 }

@@ -1,0 +1,8 @@
+﻿Group: Tameion
+FriendlyName: Cars
+SystemName: Tameion.Cars
+Version: 1.0
+SupportedVersions: 3.60,3.70
+Author: Muhammad Sohail
+DisplayOrder: 1
+FileName: Nop.Plugin.Tameion.Cars.dll

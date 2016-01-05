@@ -1,0 +1,46 @@
+﻿@*@model IList<Nop.Plugin.Misc.VendorMembership.ViewModels.ProductSpecificationAttributeModel>*@
+@using Nop.Plugin.Misc.VendorMembership.Extensions;
+@model Nop.Admin.Models.Catalog.ProductModel
+@{
+    var productSpecs = Model.GetProductSpecifications("Vehicle");
+}
+
+@using (Html.BeginForm(null, null, FormMethod.Post, new { id = "product-form" }))
+{
+    var specificationAttributeService = Nop.Core.Infrastructure.EngineContext.Current.Resolve<Nop.Services.Catalog.ISpecificationAttributeService>();
+    var vehicleProductSpecAttributes = specificationAttributeService.GetProductSpecificationAttributes(62)
+                .Where(a => a.SpecificationAttributeOption.SpecificationAttribute.Name.StartsWith("Vehicle"));
+    var groups = vehicleProductSpecAttributes.Select(a => a.SpecificationAttributeOption.SpecificationAttribute.Name).GroupBy(a => a.Split('|')[1]);
+    foreach (var group in groups)
+    {
+        var groupName = group.Key;
+        <h4>@groupName</h4>
+        var productSpecAttributesGroups = productSpecs.Where(a => a.SpecificationAttributeOption.SpecificationAttribute.Name.Contains(groupName)).ToList();
+        foreach (var productSpecAttributesGroup in productSpecAttributesGroups)
+        {
+            @Html.DisplayFor(model => productSpecAttributesGroups[productSpecAttributesGroups.IndexOf(productSpecAttributesGroup)].AttributeName.Split('|')[2])
+            <br />
+            @Html.HiddenFor(model => productSpecAttributesGroups[productSpecAttributesGroups.IndexOf(productSpecAttributesGroup)].Id)
+            @Html.HiddenFor(model => productSpecAttributesGroups[productSpecAttributesGroups.IndexOf(productSpecAttributesGroup)].AttributeTypeName)
+            @Html.HiddenFor(model => productSpecAttributesGroups[productSpecAttributesGroups.IndexOf(productSpecAttributesGroup)].AttributeTypeId)
+            if (productSpecAttributesGroups[productSpecAttributesGroups.IndexOf(productSpecAttributesGroup)].AvailableOptions.Count > 1)
+            {
+                @Html.DropDownListFor(model => productSpecAttributesGroups[productSpecAttributesGroups.IndexOf(productSpecAttributesGroup)].SpecificationAttributeOptionId, productSpecAttributesGroups[productSpecAttributesGroups.IndexOf(productSpecAttributesGroup)].AvailableOptions);
+                @Html.HiddenFor(model => productSpecAttributesGroups[productSpecAttributesGroups.IndexOf(productSpecAttributesGroup)].ValueRaw)
+            }
+            else
+            {
+                @Html.HiddenFor(model => productSpecAttributesGroups[productSpecAttributesGroups.IndexOf(productSpecAttributesGroup)].SpecificationAttributeOptionId);
+                @Html.EditorFor(model => productSpecAttributesGroups[productSpecAttributesGroups.IndexOf(productSpecAttributesGroup)].ValueRaw)
+            }
+            @Html.HiddenFor(model => productSpecAttributesGroups[productSpecAttributesGroups.IndexOf(productSpecAttributesGroup)].ProductId)
+            @Html.HiddenFor(model => productSpecAttributesGroups[productSpecAttributesGroups.IndexOf(productSpecAttributesGroup)].CustomValue)
+            @Html.HiddenFor(model => productSpecAttributesGroups[productSpecAttributesGroups.IndexOf(productSpecAttributesGroup)].AllowFiltering)
+            @Html.HiddenFor(model => productSpecAttributesGroups[productSpecAttributesGroups.IndexOf(productSpecAttributesGroup)].ShowOnProductPage)
+            @Html.HiddenFor(model => productSpecAttributesGroups[productSpecAttributesGroups.IndexOf(productSpecAttributesGroup)].DisplayOrder)
+            <br />
+        }
+    }
+    
+    <input type="submit" value="Save" />
+}

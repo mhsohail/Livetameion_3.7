@@ -1,0 +1,25 @@
+﻿@using Nop.Core.Infrastructure;
+@using System;
+@using Nop.Core.Domain.Catalog;
+@using Nop.Services.Catalog;
+@using Nop.Web.Framework;
+@using Nop.Web.Framework.UI;
+@using Nop.Web.Framework.Events;
+@using Nop.Core.Infrastructure;
+@using Nop.Services.Events;
+@using Nop.Admin.Models.Catalog;
+@using Nop.Admin.Models.Orders;
+@{
+    Layout = "_AdminLayout";
+}
+@model Nop.Plugin.Misc.Advertisements.ViewModels.AdvertisementModel
+
+@using (Html.BeginForm(null, null, FormMethod.Post, new { id = "product-form", enctype = "multipart/form-data" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+    @Html.Partial("_CreateOrUpdate", Model);
+    
+    <input type="submit" name="save" value="@T("Admin.Common.Save")" />
+}

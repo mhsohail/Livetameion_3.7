@@ -1,0 +1,19 @@
+﻿@using GridMvc.Html
+@model Nop.Plugin.Tameion.SupportTicketSystem.ViewModels.TicketsListModel
+@{
+    var areaName = HttpContext.Current.Request.RequestContext.RouteData.Values["area"].ToString();
+    if (areaName == "Vendor")
+    {
+        Layout = "~/Plugins/Misc.VendorMembership/Views/Shared/_Layout.cshtml";
+    }
+    else
+    {
+        Layout = "_AdminLayout";
+    }
+}
+
+@Html.Grid(Model.Tickets).Columns(columns =>
+{
+    columns.Add(ticket => ticket.Title).Titled("Title").SetWidth(300).Sortable(true).Encoded(false).Sanitized(false).RenderValueAs(ticket => Html.ActionLink(ticket.Title, "Details", "Tickets", new { id = ticket.Id }, null));
+}).WithPaging(20)
+@Html.ActionLink("Create ticket", "Create", areaName+"/Tickets")
