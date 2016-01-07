@@ -1,0 +1,76 @@
+﻿@model ProductOverviewModel
+@using Nop.Core
+@using Nop.Core.Domain.Orders
+@using Nop.Core.Domain.Tax
+@using Nop.Core.Infrastructure
+@using Nop.Web.Extensions
+@using Nop.Web.Models.Catalog;
+
+@{
+        //prepare "Add to cart" AJAX link
+        string addtocartlink = "";
+        var shoppingCartTypeId = (int)ShoppingCartType.ShoppingCart;
+        var quantity = 1;        
+}
+
+@if (Model.ProductPrice.ForceRedirectionAfterAddingToCart)
+{
+    addtocartlink = Url.RouteUrl("AddProductToCart-Catalog", new { productId = Model.Id, shoppingCartTypeId = shoppingCartTypeId, quantity = quantity, forceredirection = Model.ProductPrice.ForceRedirectionAfterAddingToCart });
+}
+else
+{
+    addtocartlink = Url.RouteUrl("AddProductToCart-Catalog", new { productId = Model.Id, shoppingCartTypeId = shoppingCartTypeId, quantity = quantity, });
+}    
+@{
+    var addtowishlistlink = Url.RouteUrl("AddProductToCart-Catalog", new { productId = Model.Id, shoppingCartTypeId = (int)ShoppingCartType.Wishlist, quantity = quantity });
+    var addtocomparelink = Url.RouteUrl("AddProductToCompare", new { productId = Model.Id });                                                                                                                                                                                                                                          
+}
+
+
+@helper Text_Truncate(string input, int length) 
+{
+    if(input.Length<= length)
+    {
+       @input
+    }
+    else
+    {
+       @input.Substring(0,length)<text>...</text>
+    }
+
+
+}
+
+
+
+<div class="item last even List-Height" style="">
+    <a href="@Url.RouteUrl("Product", new{ SeName = Model.SeName})" class="product-image">
+        <img src=@Model.DefaultPictureModel.ImageUrl alt="@Model.DefaultPictureModel.AlternateText" title="@Model.DefaultPictureModel.Title" class="ImageSetter"   style=""/>
+    </a>
+    <div class="product-shop">
+                                                                    <div class="f-fix">
+                                                                          <h2 class="product-name"><a href=@Url.RouteUrl("Product", new{SeName = Model.SeName}) title="test">@Text_Truncate(Model.Name, 30)</a></h2>
+                                                                            <div class="price-box">
+                                                                        <p class="new-price">
+                                                                            <label   class="price-label">1 New from</label>
+                                                                            <label   class="price"><strong><span class="price">@Model.ProductPrice.Price</span></strong></label>
+                                                                        </p>
+                                                                  </div>
+                                                                            <p>
+                                                                                    @if (!Model.ProductPrice.DisableBuyButton)
+                                                                     {
+                                                                            <button type="button" title="Add to Cart" style="padding:7px 12px;float:left;border:none;color:#fff;font-size:12px;font-weight:600;line-height:20px;text-transform:uppercase" class="button btn-cart" onclick="AjaxCart.addproducttocart_catalog('@addtocartlink    '); return false;"><span><span> <i class="fa fa-shopping-cart"></i>Add to Cart</span></span></button>
+                                                                     }
+                                                                     @if (!Model.ProductPrice.DisableAddToCompareListButton)
+                                                                     {
+                                                                        
+                                                                        <input type="button" value="@T("ShoppingCart.AddToCompareList")" title="@T("ShoppingCart.AddToCompareList")" class="button-2 add-to-compare-list-button" style="width:50px" onclick="AjaxCart.addproducttocomparelist('@addtocomparelink'); return false;" />
+                                                                     }
+                                                                     @if (!Model.ProductPrice.DisableWishlistButton)
+                                                                     {
+                                                                        <input type="button" value="@T("ShoppingCart.AddToWishlist")" title="@T("ShoppingCart.AddToWishlist")" class="button-2 add-to-wishlist-button" style="width:50px" onclick="AjaxCart.addproducttocart_catalog('@addtowishlistlink'); return false;" />
+                                                                     }                                                            
+                                                                            </p>
+                                                                    </div>
+                                                             </div>
+</div>                                                                                                                                                                         

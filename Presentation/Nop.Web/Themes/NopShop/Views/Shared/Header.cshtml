@@ -1,0 +1,73 @@
+﻿
+
+<div class="head-center">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-2">
+                <div class="logo"> <img src="~/Themes/NopShop/Content/css/images/logo.jpg" alt="logo"  />                 
+                </div>
+            </div>
+            <div class="col-md-7">             
+                 @Html.Action("SearchByCatgory","Catalog")                
+           </div>
+            <div class="col-md-3">
+                <div class="cart-account">
+                     <div class="dropdown">
+              <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown"><i class="fa fa-key"></i>Your account <span class="caret"></span></button>
+              <ul class="dropdown-menu">
+                <li><a href="/order/history">My Orders</a></li>
+                <li><a href="#">My ShortList</a></li>
+                <li><a href="#">My SD Cash</a></li>
+              </ul>
+            </div>
+                      @Html.Action("MiddleHeaderLinks","Common")
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+@*<div class="header-middle"><!--header-middle-->
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-4">
+                <div class="logo pull-left">
+                    <a class="logo" href="@Url.RouteUrl("HomePage")"></a>
+                </div>
+                <div class="btn-group pull-right">
+                    
+                    
+
+                    @Html.Action("LanguageSelector", "Common")
+                    @Html.Action("CurrencySelector", "Common")
+                    @Html.Action("TaxTypeSelector", "Common")
+                 
+                    
+                </div>
+            </div>
+            <div class="col-sm-8">
+                @Html.Action("HeaderLinks", "Common")
+                
+            </div>
+        </div>
+    </div>
+</div>
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            @Html.Partial("_Notifications")
+        </div>
+    </div>
+</div>*@
+
+
+
+
+
+
+
+

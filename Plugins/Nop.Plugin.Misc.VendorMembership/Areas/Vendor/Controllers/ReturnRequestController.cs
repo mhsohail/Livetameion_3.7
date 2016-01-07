@@ -12,12 +12,13 @@ namespace Nop.Plugin.Misc.VendorMembership.Areas.Vendor.Controllers
 {
     public class ReturnRequestController : Nop.Admin.Controllers.ReturnRequestController
     {
-        public ReturnRequestController(IOrderService orderService,
+        public ReturnRequestController(IReturnRequestService returnRequestService, 
+            IOrderService orderService,
             ICustomerService customerService, IDateTimeHelper dateTimeHelper,
             ILocalizationService localizationService, IWorkContext workContext,
             IWorkflowMessageService workflowMessageService, LocalizationSettings localizationSettings,
             ICustomerActivityService customerActivityService, IPermissionService permissionService)
-            : base(orderService, customerService, 
+            : base(returnRequestService, orderService, customerService, 
                   dateTimeHelper, localizationService, 
                   workContext, workflowMessageService, 
                   localizationSettings, customerActivityService, permissionService)

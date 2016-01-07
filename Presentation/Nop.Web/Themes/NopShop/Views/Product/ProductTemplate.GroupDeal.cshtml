@@ -1,0 +1,503 @@
+﻿@model ProductDetailsModel
+@using Nop.Core
+@using Nop.Core.Domain.Orders;
+@using Nop.Core.Domain.Seo;
+@using Nop.Core.Infrastructure;
+@using Nop.Web.Models.Catalog;
+@using System;
+@using Nop.Web.Extensions
+@using Nop.Services.Catalog;
+@using Nop.Services.Directory;
+@{
+    Layout = "~/Views/Shared/_ColumnsTwo.cshtml";
+
+    //title, meta
+    Html.AddTitleParts(!String.IsNullOrEmpty(Model.MetaTitle) ? Model.MetaTitle : Model.Name);
+    Html.AddMetaDescriptionParts(Model.MetaDescription);
+    Html.AddMetaKeywordParts(Model.MetaKeywords);
+
+    var canonicalUrlsEnabled = EngineContext.Current.Resolve<SeoSettings>().CanonicalUrlsEnabled;
+    if (canonicalUrlsEnabled)
+    {
+        var productUrl = Url.RouteUrl("Product", new { SeName = Model.SeName }, this.Request.Url.Scheme);
+        Html.AddCanonicalUrlParts(productUrl);
+    }
+ var IsSpecialStarted = 0;
+}
+
+
+@{
+    //current category ID
+    int currentCategoryId = 0;
+    if (Url.RequestContext.RouteData.Values["controller"].ToString().Equals("catalog", StringComparison.InvariantCultureIgnoreCase) &&
+        Url.RequestContext.RouteData.Values["action"].ToString().Equals("category", StringComparison.InvariantCultureIgnoreCase))
+    {
+        currentCategoryId = Convert.ToInt32(Url.RequestContext.RouteData.Values["categoryId"].ToString());
+    }
+
+
+    //current manufacturer ID
+    int currentManufacturerId = 0;
+    if (Url.RequestContext.RouteData.Values["controller"].ToString().Equals("catalog", StringComparison.InvariantCultureIgnoreCase) &&
+        Url.RequestContext.RouteData.Values["action"].ToString().Equals("manufacturer", StringComparison.InvariantCultureIgnoreCase))
+    {
+        currentManufacturerId = Convert.ToInt32(Url.RequestContext.RouteData.Values["manufacturerId"].ToString());
+    }
+
+
+    //current product ID
+    int currentProductId = 0;
+    if (Url.RequestContext.RouteData.Values["controller"].ToString().Equals("catalog", StringComparison.InvariantCultureIgnoreCase) &&
+        Url.RequestContext.RouteData.Values["action"].ToString().Equals("product", StringComparison.InvariantCultureIgnoreCase))
+    {
+        currentProductId = Convert.ToInt32(Url.RequestContext.RouteData.Values["productId"].ToString());
+    }
+    
+
+          // Add To cart Detail
+        
+         string addtocartlink = "";        
+         var shoppingCartTypeId = (int)ShoppingCartType.ShoppingCart;
+         var quantity = 1; 
+
+         addtocartlink = Url.RouteUrl("AddProductToCart-Catalog", new { productId = Model.Id, shoppingCartTypeId = shoppingCartTypeId, quantity = quantity, });          
+
+    // wishlist and compare rpoduct data generater
+    
+        var addtowishlistlink = Url.RouteUrl("AddProductToCart-Catalog", new { productId = Model.Id, shoppingCartTypeId = (int)ShoppingCartType.Wishlist, quantity = quantity });
+        var addtocomparelink = Url.RouteUrl("AddProductToCompare", new { productId = Model.Id });                                                                                                                                                                                                                                          
+ 
+    
+    // Counting TIme for timer
+
+
+     double TotalHours = 0;
+     double TotalMin = 0;
+     double TotalSeconds = 0;
+     int TotalDaysLeft = 0;
+  
+     DateTime EndTime = System.Convert.ToDateTime(Model.AvailableEndDateTimeUtc);
+
+     TimeZoneInfo INDIAN_ZONE = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
+     DateTime IndianTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, INDIAN_ZONE);
+    
+    
+     
+     if((Model.AvailableStartDateTimeUtc != null) && (Model.AvailableEndDateTimeUtc !=null))
+     {        
+        if((IndianTime.Year >= Model.AvailableStartDateTimeUtc.Year) )
+        {            
+             IsSpecialStarted = 1;
+        }
+        else
+        {
+                if( (IndianTime.Month > Model.AvailableStartDateTimeUtc.Month))
+                {
+                    IsSpecialStarted = 1;
+                }
+                else if(IndianTime.Month == Model.AvailableStartDateTimeUtc.Month)
+                {
+                        if(IndianTime.Day >= Model.AvailableStartDateTimeUtc.Day)
+                        {       
+                            IsSpecialStarted = 1;
+                        }
+                }               
+        }
+     }
+    
+     TimeSpan exact = EndTime - IndianTime;
+     TotalHours = (long) exact.TotalHours;
+     TotalMin = 60 - IndianTime.Minute;
+     TotalSeconds =60 - IndianTime.Second;   
+
+     @*initialize services *@
+     var _workContext = EngineContext.Current.Resolve<IWorkContext>();
+     var _currencyService = EngineContext.Current.Resolve<ICurrencyService>(); 
+     var _Priceformatter = EngineContext.Current.Resolve<IPriceFormatter>();  
+      
+}
+
+<!--product breadcrumb-->
+ @section left
+{     
+    <div style="padding-top:15px;">
+    @Html.Partial("_ProductBreadcrumb", Model.Breadcrumb)
+</div>   
+}
+
+
+@section News
+{
+   @Html.Action("NewsletterBox", "Newsletter")
+}
+
+<div class="features_items GroupDealLink">
+    <!--features_items-->
+  @*  <h2 class="title text-center ">@Model.Name</h2>*@
+
+
+    <div class="product-details">
+        @using (Html.BeginRouteForm("Product", new { SeName = Model.SeName }, FormMethod.Post, new { id = "product-details-form" }))
+        {
+       
+                <div class="row product-essential">
+                    @Html.Widget("productdetails_before_pictures", Model.Id)
+                    <!--product pictures-->
+
+
+                    <div class="col-md-6 col-sm-6">
+
+                         <h2 class="GroupDealTitle"> @Model.Name</h2>
+
+                        @Html.Partial("_ProductDetailsPictures", Model)
+                        @Html.Widget("productdetails_after_pictures", Model.Id)
+                    </div>
+
+                    <div class="col-md-6  col-sm-6 overview">  @*class ="overview"*@
+                        <div class="right-sidbar">
+                            <div class="right-sidebar-title">
+                                <h2>@*Hello There*@</h2>
+                            </div>
+                            <div class="sidebar-price-box">
+                                 <div class="product-price">
+                                 <div class="product-img">
+                                         <img src="~/Themes/NopShop/Content/images/price_tag_front.png" />
+                                 </div>
+                                 <div class="product-text">
+                            <div class="gd-add-to-cart">
+                              @{ var Status = "Not Started";
+                                                                                                         
+                                    if((IndianTime >= Model.AvailableStartDateTimeUtc) && (IndianTime <= Model.AvailableEndDateTimeUtc))
+                                      {
+                                           Status = "Started";
+                                      }
+                                    if(IndianTime > Model.AvailableEndDateTimeUtc )
+                                    {
+                                           Status= "Ended";
+                                    }
+                               }
+                              <input type="submit" class="gd-button disabled" value=@Status>
+                            </div>
+                            <div class="prize">
+                              <h4> @Model.ProductPrice.SpecialPrice </h4>
+                            </div>
+                            </div>
+                          </div>
+                            </div>
+                            <div class="add-to-box">
+                                    <ul>
+                            <li><span>Value</span>
+                                 @{ string ActualPrice = _Priceformatter.FormatPrice(Model.ProductPrice.FinalPriceWithoutSpecialPrice);}
+                              <h5>@ActualPrice</h5>
+                            </li>
+                            <li><span>Discount</span>
+                                @{                                                                                                                                           
+                                    decimal Price = Model.ProductPrice.FinalPriceWithoutSpecialPrice;                                    
+                                    decimal SpecialPriceValue = System.Convert.ToDecimal(Model.ProductPrice.SpecialPriceValue);
+                                    decimal Discount = System.Convert.ToDecimal((((Price - SpecialPriceValue )/ Price)* 100));  
+                                                                                                                                             
+                                 }
+                                
+                              <h5>@String.Format("{0:0.00}",Discount) %</h5>
+                            </li>
+                            <li><span> You Save</span>
+                                @{                                    
+                                    var SaveAmount = Price - SpecialPriceValue; 
+                                     
+                                    decimal SaveAmountBase = _currencyService.ConvertFromPrimaryStoreCurrency(SaveAmount, _workContext.WorkingCurrency);   
+                                    string FinalSaveAMount = _Priceformatter.FormatPrice(SaveAmountBase);
+                                 }
+                              <h5>@FinalSaveAMount</h5>
+                            </li>
+                          </ul>
+                            </div>
+                            <div class="countdown-box" id="TimerBox" style="display:none;">
+                                
+                                        <button type="button" title="Add to Cart" id="GroupDealCart" style="" class="button btn-cart ExtraCart " onclick="AjaxCart.addproducttocart_catalog('@addtocartlink    '); return false;"><span><span> <i class="fa fa-shopping-cart"></i>Add to Cart</span></span></button>                                   
+                                
+                                 <h5>TIME LEFT TO BUY</h5>                                
+                               <div id="countdowntimer"><span id="future_date"><span></div>
+                            </div>
+                            <div class="countdown-box" id="Over" style="display:none">
+                          <h2>0 bought</h2>
+                          <div class="cross-check"><img alt="cross" src="~/Themes/NopShop/Content/images/cross.png">The deal is over.</div>
+                          <i>The deal's target wasn't met.</i> </div>    
+                            <div class="countdown-box share-box">
+                                  <div class="share-box">
+                                       <div class="share-box-center"> <b>Share:</b>
+                                           <div class="twitter">
+                                <iframe frameborder="0" id="twitter-widget-0" scrolling="no" allowtransparency="true" class="twitter-share-button twitter-share-button-rendered twitter-tweet-button" style="position: static; visibility: visible; width: 61px; height: 20px;" title="Twitter Tweet Button" src="http://platform.twitter.com/widgets/tweet_button.c633b87376883931e7436b93bb46a699.en.html#_=1451334513101&amp;dnt=false&amp;id=twitter-widget-0&amp;lang=en&amp;original_referer=http%3A%2F%2Fwww.livetameion.com%2Foutdoor-sports%2Ffan-gear%2Fhello-there.html&amp;size=m&amp;text=Hello%20There%20-%20Fan%20gear%20-%20Outdoor%20%26%20sports&amp;type=share&amp;url=http%3A%2F%2Fwww.livetameion.com%2Fhello-there.html"></iframe>
+                                <script src="//platform.twitter.com/widgets.js" type="text/javascript"></script> 
+                              </div>
+                                           <div class="google"> 
+                                <script src="https://apis.google.com/js/plusone.js" type="text/javascript" gapi_processed="true"></script>
+                                <div style="text-indent: 0px; margin: 0px; padding: 0px; background: transparent none repeat scroll 0% 0%; border-style: none; float: none; line-height: normal; font-size: 1px; vertical-align: baseline; display: inline-block; width: 50px; height: 60px;" id="___plusone_0">
+                                  <iframe width="100%" frameborder="0" hspace="0" marginheight="0" marginwidth="0" scrolling="no" style="position: static; top: 0px; width: 50px; margin: 0px; border-style: none; left: 0px; visibility: visible; height: 60px;" tabindex="0" vspace="0" id="I0_1451334509516" name="I0_1451334509516" src="https://apis.google.com/se/0/_/+1/fastbutton?usegapi=1&amp;size=tall&amp;origin=http%3A%2F%2Fwww.livetameion.com&amp;url=http%3A%2F%2Fwww.livetameion.com%2Fhello-there.html&amp;gsrc=3p&amp;ic=1&amp;jsh=m%3B%2F_%2Fscs%2Fapps-static%2F_%2Fjs%2Fk%3Doz.gapi.en_GB.cJkIm0jUbF0.O%2Fm%3D__features__%2Fam%3DAQ%2Frt%3Dj%2Fd%3D1%2Ft%3Dzcms%2Frs%3DAGLTcCMfB6uTBe-eJT43Gy1rNo6w6uY2fA#_methods=onPlusOne%2C_ready%2C_close%2C_open%2C_resizeMe%2C_renderstart%2Concircled%2Cdrefresh%2Cerefresh&amp;id=I0_1451334509516&amp;parent=http%3A%2F%2Fwww.livetameion.com&amp;pfname=&amp;rpctoken=16227475" data-gapiattached="true" title="+1"></iframe>
+                                </div>
+                              </div>
+                                           <div class="share-this">
+                                <div class="addthis_toolbox addthis_default_style "> 
+                                <a class="addthis_counter addthis_pill_style" style="display: inline-block;" href="#">
+                                </a><a class="atc_s addthis_button_compact"><span></span></a>
+                                <a class="addthis_button_expanded" target="_blank" title="View more services" href="#" tabindex="1000"></a>
+                                
+                                  <div class="atclear"></div>
+                                </div>
+                                <script src="//s7.addthis.com/js/300/addthis_widget.js#pubid=xa-51504f431ed8bf84" type="text/javascript"></script> 
+                                <a href="Javascript://"> <img width="16px" height="17px" src="~/Themes/NopShop/Content/images/mail.png"> Email to a Friend </a> </div>
+                                           
+                                      </div>
+                                  </div>
+                           </div>                            
+                            <div class="countdown-box link">
+                                 <ul>
+                                     <li><a href="#"  title="@T("ShoppingCart.AddToWishlist")" onclick="AjaxCart.addproducttocart_catalog('@addtowishlistlink'); return false;" >@T("ShoppingCart.AddToWishlist")</a></li>
+                                     <li><a href="#" onclick="AjaxCart.addproducttocomparelist('@addtocomparelink'); return false;" >@T("ShoppingCart.AddToCompareList")</a></li>
+                                 </ul>
+                            </div>    
+                        </div>                        
+                    </div>
+                </div>                  
+        }
+    </div>
+
+    <div class="tab SpaceBottom">
+                <div> 
+                  
+                  <!-- Nav tabs -->
+                  <ul class="nav nav-tabs" role="tablist">
+                    <li role="presentation" class="active"><a href="#home" aria-controls="home" role="tab" data-toggle="tab">Merchant info</a></li>
+                    <li role="presentation" class=""><a href="#profile" aria-controls="profile" role="tab" data-toggle="tab">Select Vendor</a></li>
+                    <li role="presentation" class=""><a href="#messages" aria-controls="messages" role="tab" data-toggle="tab">Reviews</a></li>
+                    <li role="presentation" class=""><a href="#settings" aria-controls="settings" role="tab" data-toggle="tab">Tags</a></li>
+                  </ul>
+                  
+                  <!-- Tab panes -->
+                  <div class="tab-content">
+                    <div role="tabpanel" class="tab-pane active" id="home">
+                      <div class="tab-container current">
+                        <div class="tab-content">
+                          <div class="description-box">Ronald Sharit</div>
+                          <div class="gd-information-box">
+                            <h5>Tameion</h5>
+                            <div class="social-links"> <a href="mailto:sales@livetameion.com">Email</a> </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div role="tabpanel" class="tab-pane new-box" id="profile">
+                      <div class="tab-content">
+                        <p>Select Vendor     | <a href="http://www.livetameion.com/udsell/index/sell/id/922/">Sell Yours</a></p>
+                        <ul class="tab-two">
+                          <li><a href="#">All</a></li>
+                          <li><a href="#">New</a></li>
+                        </ul>
+                        <div class="box-teb">
+                          <ul class="box-panl">
+                            <li>Price + Shipping</li>
+                            <li>Condition</li>
+                            <li>Seller</li>
+                          </ul>
+                        </div>
+                        <ul class="three-tab">
+                          <li><span>$0.00</span></li>
+                          <li>New</li>
+                          <li><img src="~/Themes/NopShop/Content/images/default-ima.png"> <a class="seller-name" href="http://tameion.livetameion.com/"><strong>Tameion</strong></a> <br>
+                            <p class="availability in-stock"><span>In Stock.</span></p>
+                          </li>
+                          <li>
+                            <div class="nobr" id="product_vendors_1_in_stock">
+                              <input type="text" maxlength="12" value="1" name="__qty" id="product_vendors_1_qty" class="input-text qty">
+                              <button class="VendorCart" onclick="udmpChangeSelectedVendor.defer('product_vendors_1_udropship_vendor', true);" title="Add to Cart" type="button">Add to Cart</button>
+                            </div>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                    <div role="tabpanel" class="tab-pane" id="messages">
+                      <div class="four-tab">
+                        <p class="no-rating"><a href="http://www.livetameion.com/review/product/list/id/922/category/80/#review-form">Be the first to review this product</a></p>
+                        <p class="title-top">Write Your Own Review</p>
+                        <p>You're reviewing: <span>Hello There</span></p>
+                        <p class="boder-box-labl">How do you rate this product? <em class="required">*</em></p>
+                        <div class="star-box">
+                          <ul class="star">
+                            <li><i class="fa fa-star"></i></li>
+                            <li><i class="fa fa-star-o"></i></li>
+                            <li><i class="fa fa-star-o"></i></li>
+                            <li><i class="fa fa-star-o"></i></li>
+                            <li><i class="fa fa-star-o"></i></li>
+                          </ul>
+                          <ul class="star">
+                            <li><i class="fa fa-star"></i></li>
+                            <li><i class="fa fa-star"></i></li>
+                            <li><i class="fa fa-star-o"></i></li>
+                            <li><i class="fa fa-star-o"></i></li>
+                            <li><i class="fa fa-star-o"></i></li>
+                          </ul>
+                          <ul class="star">
+                            <li><i class="fa fa-star"></i></li>
+                            <li><i class="fa fa-star"></i></li>
+                            <li><i class="fa fa-star"></i></li>
+                            <li><i class="fa fa-star-o"></i></li>
+                            <li><i class="fa fa-star-o"></i></li>
+                          </ul>
+                          <ul class="star">
+                            <li><i class="fa fa-star"></i></li>
+                            <li><i class="fa fa-star"></i></li>
+                            <li><i class="fa fa-star"></i></li>
+                            <li><i class="fa fa-star"></i></li>
+                            <li><i class="fa fa-star-o"></i></li>
+                          </ul>
+                          <ul class="star">
+                            <li><i class="fa fa-star"></i></li>
+                            <li><i class="fa fa-star"></i></li>
+                            <li><i class="fa fa-star"></i></li>
+                            <li><i class="fa fa-star"></i></li>
+                            <li><i class="fa fa-star"></i></li>
+                          </ul>
+                        </div>
+                        <table id="product-review-table" class="data-table review-summary-table ratings">
+                          <colgroup>
+                          <col width="1">
+                          <col>
+                          <col>
+                          <col>
+                          <col>
+                          <col>
+                          </colgroup>
+                          <tbody>
+                            <tr class="first odd">
+                              <th>Price</th>
+                              <td class="value"><label for="Price_1">
+                                  <input type="radio" class="radio" value="11" id="Price_1" name="ratings[3]">
+                                </label></td>
+                              <td class="value"><label for="Price_2">
+                                  <input type="radio" class="radio" value="12" id="Price_2" name="ratings[3]">
+                                </label></td>
+                              <td class="value"><label for="Price_3">
+                                  <input type="radio" class="radio" value="13" id="Price_3" name="ratings[3]">
+                                </label></td>
+                              <td class="value"><label for="Price_4">
+                                  <input type="radio" class="radio" value="14" id="Price_4" name="ratings[3]">
+                                </label></td>
+                              <td class="value last"><label for="Price_5">
+                                  <input type="radio" class="radio" value="15" id="Price_5" name="ratings[3]">
+                                </label></td>
+                            </tr>
+                            <tr class="even">
+                              <th>Value</th>
+                              <td class="value"><label for="Value_1">
+                                  <input type="radio" class="radio" value="6" id="Value_1" name="ratings[2]">
+                                </label></td>
+                              <td class="value"><label for="Value_2">
+                                  <input type="radio" class="radio" value="7" id="Value_2" name="ratings[2]">
+                                </label></td>
+                              <td class="value"><label for="Value_3">
+                                  <input type="radio" class="radio" value="8" id="Value_3" name="ratings[2]">
+                                </label></td>
+                              <td class="value"><label for="Value_4">
+                                  <input type="radio" class="radio" value="9" id="Value_4" name="ratings[2]">
+                                </label></td>
+                              <td class="value last"><label for="Value_5">
+                                  <input type="radio" class="radio" value="10" id="Value_5" name="ratings[2]">
+                                </label></td>
+                            </tr>
+                            <tr class="last odd">
+                              <th>Quality</th>
+                              <td class="value"><label for="Quality_1">
+                                  <input type="radio" class="radio" value="1" id="Quality_1" name="ratings[1]">
+                                </label></td>
+                              <td class="value"><label for="Quality_2">
+                                  <input type="radio" class="radio" value="2" id="Quality_2" name="ratings[1]">
+                                </label></td>
+                              <td class="value"><label for="Quality_3">
+                                  <input type="radio" class="radio" value="3" id="Quality_3" name="ratings[1]">
+                                </label></td>
+                              <td class="value"><label for="Quality_4">
+                                  <input type="radio" class="radio" value="4" id="Quality_4" name="ratings[1]">
+                                </label></td>
+                              <td class="value last"><label for="Quality_5">
+                                  <input type="radio" class="radio" value="5" id="Quality_5" name="ratings[1]">
+                                </label></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        <ul class="form-list form-boxinput">
+                          <li>
+                            <label class="required" for="review_field">Let us know your thoughts<em>*</em></label>
+                            <div class="input-box">
+                              <textarea class="required-entry" rows="3" cols="5" id="review_field" name="detail"></textarea>
+                            </div>
+                          </li>
+                          <li class="inline-label">
+                            <label class="required" for="summary_field">Summary of Your Review<em>*</em></label>
+                            <div class="input-box">
+                              <input type="text" value="" class="input-text required-entry" id="summary_field" name="title">
+                            </div>
+                          </li>
+                          <li class="inline-label">
+                            <label class="required" for="nickname_field">What's your nickname?<em>*</em></label>
+                            <div class="input-box">
+                              <input type="text" value="" class="input-text required-entry" id="nickname_field" name="nickname">
+                              <button type="button" title="Add to Cart" class="VendorCart"><span>Submit Review</span></button>
+                            </div>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                    <div role="tabpanel" class="tab-pane border" id="settings">
+                      <div class="product-tag">
+                        <h5>Product Tags</h5>
+                      </div>
+                      <div class="form-add">
+                        <label for="productTagName">Add Your Tags:</label>
+                        <div class="input-box">
+                          <input type="text" id="productTagName" name="productTagName" class="input-text required-entry">
+                        </div>
+                        <button onclick="submitTagForm()" class="button" title="Add Tags" type="button"> <span> <span>Add Tags</span> </span> </button>
+                      </div>
+                      <p class="note">Use spaces to separate tags. Use single quotes (') for phrases.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+    
+
+</div>
+<div class="product-collateral">
+
+    @Html.Action("ProductsAlsoPurchased", "Product", new { productId = Model.Id })
+    @Html.Action("RelatedProducts", "Product", new { productId = Model.Id })
+</div>
+
+
+
+<script type="text/javascript">
+  
+    function TimesIsUp()
+    {
+        $("#GroupDealCart").remove();
+        $("#Over").show();
+    }
+
+    $(function () {
+        debugger;
+    var showstatus=@IsSpecialStarted;
+    if (showstatus==1)
+    {
+        debugger;
+        $("#TimerBox").show();
+      
+            $("#countdowntimer").countdowntimer({
+                hours: @TotalHours,
+                minutes: @TotalMin,
+                seconds: @TotalSeconds,
+                size: "lg",
+                timeUp : TimesIsUp
+            });
+            
+
+    }
+    });
+</script>

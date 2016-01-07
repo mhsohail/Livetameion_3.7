@@ -15,28 +15,31 @@ namespace Nop.Web.Models.Catalog
             SubCategories = new List<SubCategoryModel>();
             CategoryBreadcrumb = new List<CategoryModel>();
         }
-
+        public int Id { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public string MetaKeywords { get; set; }
         public string MetaDescription { get; set; }
         public string MetaTitle { get; set; }
         public string SeName { get; set; }
-        
+        public int ParentCategoryId { get; set; }
+
+        public int PictureId { get; set; }
+
         public PictureModel PictureModel { get; set; }
 
         public CatalogPagingFilteringModel PagingFilteringContext { get; set; }
 
         public bool DisplayCategoryBreadcrumb { get; set; }
         public IList<CategoryModel> CategoryBreadcrumb { get; set; }
-        
+
         public IList<SubCategoryModel> SubCategories { get; set; }
 
         public IList<ProductOverviewModel> FeaturedProducts { get; set; }
         public IList<ProductOverviewModel> Products { get; set; }
-        
 
-		#region Nested Classes
+
+        #region Nested Classes
 
         public partial class SubCategoryModel : BaseNopEntityModel
         {
@@ -54,6 +57,6 @@ namespace Nop.Web.Models.Catalog
             public PictureModel PictureModel { get; set; }
         }
 
-		#endregion
+        #endregion
     }
 }

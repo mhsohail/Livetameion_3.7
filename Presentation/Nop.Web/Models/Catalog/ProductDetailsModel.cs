@@ -42,6 +42,10 @@ namespace Nop.Web.Models.Catalog
         public string MetaTitle { get; set; }
         public string SeName { get; set; }
 
+        // For GroupDealProduct   
+        public DateTime AvailableEndDateTimeUtc { get; set; }
+        public DateTime AvailableStartDateTimeUtc { get; set; }
+
         public bool ShowSku { get; set; }
         public string Sku { get; set; }
 
@@ -162,7 +166,9 @@ namespace Nop.Web.Models.Catalog
 
             public string Price { get; set; }
             public string PriceWithDiscount { get; set; }
+
             public decimal PriceValue { get; set; }
+            public decimal PriceWithDiscountValue { get; set; }
 
             public bool CustomerEntersPrice { get; set; }
 
@@ -184,6 +190,13 @@ namespace Nop.Web.Models.Catalog
             /// PAngV baseprice (used in Germany)
             /// </summary>
             public string BasePricePAngV { get; set; }
+
+
+            // for GroupDeal Products
+            public decimal SpecialPriceValue { get; set; }
+            public string SpecialPrice { get; set; }
+            public decimal FinalPriceWithoutSpecialPrice { get; set; }
+
         }
 
         public partial class GiftCardModel : BaseNopModel
@@ -290,6 +303,6 @@ namespace Nop.Web.Models.Catalog
             public PictureModel PictureModel { get; set; }
         }
 
-		#endregion
+        #endregion
     }
 }

@@ -34,6 +34,8 @@ namespace Nop.Web.Extensions
                 MetaDescription = entity.GetLocalized(x => x.MetaDescription),
                 MetaTitle = entity.GetLocalized(x => x.MetaTitle),
                 SeName = entity.GetSeName(),
+                ParentCategoryId = entity.ParentCategoryId,
+                PictureId = entity.PictureId
             };
             return model;
         }
@@ -76,7 +78,7 @@ namespace Nop.Web.Extensions
         /// <param name="customer">Customer record which will be used to pre-populate address. Used only when "prePopulateWithCustomerFields" is "true".</param>
         /// <param name="overrideAttributesXml">When specified we do not use attributes of an address; if null, then already saved ones are used</param>
         public static void PrepareModel(this AddressModel model,
-            Address address, bool excludeProperties, 
+            Address address, bool excludeProperties,
             AddressSettings addressSettings,
             ILocalizationService localizationService = null,
             IStateProvinceService stateProvinceService = null,
@@ -102,11 +104,11 @@ namespace Nop.Web.Extensions
                 model.Email = address.Email;
                 model.Company = address.Company;
                 model.CountryId = address.CountryId;
-                model.CountryName = address.Country != null 
-                    ? address.Country.GetLocalized(x => x.Name) 
+                model.CountryName = address.Country != null
+                    ? address.Country.GetLocalized(x => x.Name)
                     : null;
                 model.StateProvinceId = address.StateProvinceId;
-                model.StateProvinceName = address.StateProvince != null 
+                model.StateProvinceName = address.StateProvince != null
                     ? address.StateProvince.GetLocalized(x => x.Name)
                     : null;
                 model.City = address.City;
@@ -172,7 +174,7 @@ namespace Nop.Web.Extensions
                             model.AvailableStates.Add(new SelectListItem
                             {
                                 Text = s.GetLocalized(x => x.Name),
-                                Value = s.Id.ToString(), 
+                                Value = s.Id.ToString(),
                                 Selected = (s.Id == model.StateProvinceId)
                             });
                         }
@@ -217,7 +219,7 @@ namespace Nop.Web.Extensions
                 model.FormattedCustomAddressAttributes = addressAttributeFormatter.FormatAttributes(address.CustomAttributes);
             }
         }
-        private static void PrepareCustomAddressAttributes(this AddressModel model, 
+        private static void PrepareCustomAddressAttributes(this AddressModel model,
             Address address,
             IAddressAttributeService addressAttributeService,
             IAddressAttributeParser addressAttributeParser,

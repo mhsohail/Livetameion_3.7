@@ -18,6 +18,11 @@ namespace Nop.Web.Models.Catalog
 
         public bool IncludeInTopMenu { get; set; }
 
+        // for nopshoptheme
+        public string Description { get; set; }
+        public string MetaDescription { get; set; }
+        public int PictureId { get; set; }
+
         public List<CategorySimpleModel> SubCategories { get; set; }
     }
 }

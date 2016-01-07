@@ -94,30 +94,30 @@ namespace Nop.Web.Controllers
             ILanguageService languageService,
             ICurrencyService currencyService,
             ILocalizationService localizationService,
-            IWorkContext workContext, 
+            IWorkContext workContext,
             IStoreContext storeContext,
-            IQueuedEmailService queuedEmailService, 
+            IQueuedEmailService queuedEmailService,
             IEmailAccountService emailAccountService,
             ISitemapGenerator sitemapGenerator,
             IThemeContext themeContext,
             IThemeProvider themeProvider,
             IForumService forumService,
-            IGenericAttributeService genericAttributeService, 
+            IGenericAttributeService genericAttributeService,
             IWebHelper webHelper,
             IPermissionService permissionService,
             ICacheManager cacheManager,
             ICustomerActivityService customerActivityService,
             IVendorService vendorService,
-            CustomerSettings customerSettings, 
-            TaxSettings taxSettings, 
+            CustomerSettings customerSettings,
+            TaxSettings taxSettings,
             CatalogSettings catalogSettings,
             StoreInformationSettings storeInformationSettings,
             EmailAccountSettings emailAccountSettings,
-            CommonSettings commonSettings, 
-            BlogSettings blogSettings, 
+            CommonSettings commonSettings,
+            BlogSettings blogSettings,
             NewsSettings newsSettings,
             ForumSettings forumSettings,
-            LocalizationSettings localizationSettings, 
+            LocalizationSettings localizationSettings,
             CaptchaSettings captchaSettings,
             VendorSettings vendorSettings)
         {
@@ -193,6 +193,59 @@ namespace Nop.Web.Controllers
             return View();
         }
 
+        //MiddleHeader
+        [ChildActionOnly]
+        public ActionResult MiddleHeaderLinks()
+        {
+            var customer = _workContext.CurrentCustomer;
+
+            var unreadMessageCount = GetUnreadPrivateMessages();
+            var unreadMessage = string.Empty;
+            var alertMessage = string.Empty;
+            if (unreadMessageCount > 0)
+            {
+                unreadMessage = string.Format(_localizationService.GetResource("PrivateMessages.TotalUnread"), unreadMessageCount);
+
+                //notifications here
+                if (_forumSettings.ShowAlertForPM &&
+                    !customer.GetAttribute<bool>(SystemCustomerAttributeNames.NotifiedAboutNewPrivateMessages, _storeContext.CurrentStore.Id))
+                {
+                    _genericAttributeService.SaveAttribute(customer, SystemCustomerAttributeNames.NotifiedAboutNewPrivateMessages, true, _storeContext.CurrentStore.Id);
+                    alertMessage = string.Format(_localizationService.GetResource("PrivateMessages.YouHaveUnreadPM"), unreadMessageCount);
+                }
+            }
+
+
+
+
+            var model = new HeaderLinksModel
+            {
+                IsAuthenticated = customer.IsRegistered(),
+                CustomerEmailUsername = customer.IsRegistered() ? (_customerSettings.UsernamesEnabled ? customer.Username : customer.Email) : "",
+                ShoppingCartEnabled = _permissionService.Authorize(StandardPermissionProvider.EnableShoppingCart),
+                WishlistEnabled = _permissionService.Authorize(StandardPermissionProvider.EnableWishlist),
+                AllowPrivateMessages = customer.IsRegistered() && _forumSettings.AllowPrivateMessages,
+                UnreadPrivateMessages = unreadMessage,
+                AlertMessage = alertMessage,
+            };
+            //performance optimization (use "HasShoppingCartItems" property)
+            if (customer.HasShoppingCartItems)
+            {
+                model.ShoppingCartItems = customer.ShoppingCartItems
+                    .Where(sci => sci.ShoppingCartType == ShoppingCartType.ShoppingCart)
+                    .LimitPerStore(_storeContext.CurrentStore.Id)
+                    .ToList()
+                    .GetTotalProducts();
+                model.WishlistItems = customer.ShoppingCartItems
+                    .Where(sci => sci.ShoppingCartType == ShoppingCartType.Wishlist)
+                    .LimitPerStore(_storeContext.CurrentStore.Id)
+                    .ToList()
+                    .GetTotalProducts();
+            }
+
+            return PartialView(model);
+        }
+
         //language
         [ChildActionOnly]
         public ActionResult LanguageSelector()
@@ -242,7 +295,7 @@ namespace Nop.Web.Controllers
             //prevent open redirection attack
             if (!Url.IsLocalUrl(returnUrl))
                 returnUrl = Url.RouteUrl("HomePage");
-            
+
             //language part in URL
             if (_localizationSettings.SeoFriendlyUrlsForLanguagesEnabled)
             {
@@ -308,7 +361,7 @@ namespace Nop.Web.Controllers
             //home page
             if (String.IsNullOrEmpty(returnUrl))
                 returnUrl = Url.RouteUrl("HomePage");
-            
+
             //prevent open redirection attack
             if (!Url.IsLocalUrl(returnUrl))
                 returnUrl = Url.RouteUrl("HomePage");
@@ -347,7 +400,7 @@ namespace Nop.Web.Controllers
 
             return Redirect(returnUrl);
         }
-        
+
         //footer
         [ChildActionOnly]
         public ActionResult JavaScriptDisabledWarning()
@@ -477,7 +530,7 @@ namespace Nop.Web.Controllers
         //contact us page
         [NopHttpsRequirement(SslRequirement.Yes)]
         //available even when a store is closed
-        [StoreClosed(true)] 
+        [StoreClosed(true)]
         public ActionResult ContactUs()
         {
             var model = new ContactUsModel
@@ -493,7 +546,7 @@ namespace Nop.Web.Controllers
         [PublicAntiForgery]
         [CaptchaValidator]
         //available even when a store is closed
-        [StoreClosed(true)] 
+        [StoreClosed(true)]
         public ActionResult ContactUsSend(ContactUsModel model, bool captchaValid)
         {
             //validate CAPTCHA
@@ -524,8 +577,8 @@ namespace Nop.Web.Controllers
                 {
                     from = emailAccount.Email;
                     fromName = emailAccount.DisplayName;
-                    body = string.Format("<strong>From</strong>: {0} - {1}<br /><br />{2}", 
-                        Server.HtmlEncode(fullName), 
+                    body = string.Format("<strong>From</strong>: {0} - {1}<br /><br />{2}",
+                        Server.HtmlEncode(fullName),
                         Server.HtmlEncode(email), body);
                 }
                 else
@@ -547,7 +600,7 @@ namespace Nop.Web.Controllers
                     CreatedOnUtc = DateTime.UtcNow,
                     EmailAccountId = emailAccount.Id
                 });
-                
+
                 model.SuccessfullySent = true;
                 model.Result = _localizationService.GetResource("ContactUs.YourEnquiryHasBeenSent");
 
@@ -667,7 +720,7 @@ namespace Nop.Web.Controllers
             if (!_commonSettings.SitemapEnabled)
                 return RedirectToRoute("HomePage");
 
-            string cacheKey = string.Format(ModelCacheEventConsumer.SITEMAP_PAGE_MODEL_KEY, 
+            string cacheKey = string.Format(ModelCacheEventConsumer.SITEMAP_PAGE_MODEL_KEY,
                 _workContext.WorkingLanguage.Id,
                 string.Join(",", _workContext.CurrentCustomer.GetCustomerRoleIds()),
                 _storeContext.CurrentStore.Id);
@@ -736,7 +789,7 @@ namespace Nop.Web.Controllers
             if (!_commonSettings.SitemapEnabled)
                 return RedirectToRoute("HomePage");
 
-            string cacheKey = string.Format(ModelCacheEventConsumer.SITEMAP_SEO_MODEL_KEY, 
+            string cacheKey = string.Format(ModelCacheEventConsumer.SITEMAP_SEO_MODEL_KEY,
                 _workContext.WorkingLanguage.Id,
                 string.Join(",", _workContext.CurrentCustomer.GetCustomerRoleIds()),
                 _storeContext.CurrentStore.Id);
@@ -806,7 +859,7 @@ namespace Nop.Web.Controllers
             };
             return PartialView(model);
         }
-        
+
         //EU Cookie law
         [ChildActionOnly]
         public ActionResult EuCookieLaw()
@@ -868,115 +921,115 @@ namespace Nop.Web.Controllers
                 //doesn't exist. Let's generate it (default behavior)
 
                 var disallowPaths = new List<string>
-                {
-                    "/bin/",
-                    "/content/files/",
-                    "/content/files/exportimport/",
-                    "/country/getstatesbycountryid",
-                    "/install",
-                    "/setproductreviewhelpfulness",
-                };
-                var localizableDisallowPaths = new List<string>
-                {
-                    "/addproducttocart/catalog/",
-                    "/addproducttocart/details/",
-                    "/backinstocksubscriptions/manage",
-                    "/boards/forumsubscriptions",
-                    "/boards/forumwatch",
-                    "/boards/postedit",
-                    "/boards/postdelete",
-                    "/boards/postcreate",
-                    "/boards/topicedit",
-                    "/boards/topicdelete",
-                    "/boards/topiccreate",
-                    "/boards/topicmove",
-                    "/boards/topicwatch",
-                    "/cart",
-                    "/checkout",
-                    "/checkout/billingaddress",
-                    "/checkout/completed",
-                    "/checkout/confirm",
-                    "/checkout/shippingaddress",
-                    "/checkout/shippingmethod",
-                    "/checkout/paymentinfo",
-                    "/checkout/paymentmethod",
-                    "/clearcomparelist",
-                    "/compareproducts",
-                    "/compareproducts/add/*",
-                    "/customer/avatar",
-                    "/customer/activation",
-                    "/customer/addresses",
-                    "/customer/changepassword",
-                    "/customer/checkusernameavailability",
-                    "/customer/downloadableproducts",
-                    "/customer/info",
-                    "/deletepm",
-                    "/emailwishlist",
-                    "/inboxupdate",
-                    "/newsletter/subscriptionactivation",
-                    "/onepagecheckout",
-                    "/order/history",
-                    "/orderdetails",
-                    "/passwordrecovery/confirm",
-                    "/poll/vote",
-                    "/privatemessages",
-                    "/returnrequest",
-                    "/returnrequest/history",
-                    "/rewardpoints/history",
-                    "/sendpm",
-                    "/sentupdate",
-                    "/shoppingcart/*",
-                    "/subscribenewsletter",
-                    "/topic/authenticate",
-                    "/viewpm",
-                    "/uploadfileproductattribute",
-                    "/uploadfilecheckoutattribute",
-                    "/wishlist",
-                };
+                                    {
+                                        "/bin/",
+                                        "/content/files/",
+                                        "/content/files/exportimport/",
+                                        "/country/getstatesbycountryid",
+                                        "/install",
+                                        "/setproductreviewhelpfulness",
+                                    };
+            var localizableDisallowPaths = new List<string>
+                                               {
+                                                   "/addproducttocart/catalog/",
+                                                   "/addproducttocart/details/",
+                                                   "/backinstocksubscriptions/manage",
+                                                   "/boards/forumsubscriptions",
+                                                   "/boards/forumwatch",
+                                                   "/boards/postedit",
+                                                   "/boards/postdelete",
+                                                   "/boards/postcreate",
+                                                   "/boards/topicedit",
+                                                   "/boards/topicdelete",
+                                                   "/boards/topiccreate",
+                                                   "/boards/topicmove",
+                                                   "/boards/topicwatch",
+                                                   "/cart",
+                                                   "/checkout",
+                                                   "/checkout/billingaddress",
+                                                   "/checkout/completed",
+                                                   "/checkout/confirm",
+                                                   "/checkout/shippingaddress",
+                                                   "/checkout/shippingmethod",
+                                                   "/checkout/paymentinfo",
+                                                   "/checkout/paymentmethod",
+                                                   "/clearcomparelist",
+                                                   "/compareproducts",
+                                                   "/compareproducts/add/*",
+                                                   "/customer/avatar",
+                                                   "/customer/activation",
+                                                   "/customer/addresses",
+                                                   "/customer/changepassword",
+                                                   "/customer/checkusernameavailability",
+                                                   "/customer/downloadableproducts",
+                                                   "/customer/info",
+                                                   "/deletepm",
+                                                   "/emailwishlist",
+                                                   "/inboxupdate",
+                                                   "/newsletter/subscriptionactivation",
+                                                   "/onepagecheckout",
+                                                   "/order/history",
+                                                   "/orderdetails",
+                                                   "/passwordrecovery/confirm",
+                                                   "/poll/vote",
+                                                   "/privatemessages",
+                                                   "/returnrequest",
+                                                   "/returnrequest/history",
+                                                   "/rewardpoints/history",
+                                                   "/sendpm",
+                                                   "/sentupdate",
+                                                   "/shoppingcart/*",
+                                                   "/subscribenewsletter",
+                                                   "/topic/authenticate",
+                                                   "/viewpm",
+                                                   "/uploadfileproductattribute",
+                                                   "/uploadfilecheckoutattribute",
+                                                   "/wishlist",
+                                               };
 
 
-                const string newLine = "\r\n"; //Environment.NewLine
-                sb.Append("User-agent: *");
+            const string newLine = "\r\n"; //Environment.NewLine
+            sb.Append("User-agent: *");
+            sb.Append(newLine);
+            //sitemaps
+            if (_localizationSettings.SeoFriendlyUrlsForLanguagesEnabled)
+            {
+                //URLs are localizable. Append SEO code
+                foreach (var language in _languageService.GetAllLanguages(storeId: _storeContext.CurrentStore.Id))
+                {
+                    sb.AppendFormat("Sitemap: {0}{1}/sitemap.xml", _storeContext.CurrentStore.Url, language.UniqueSeoCode);
+                    sb.Append(newLine);
+                }
+            }
+            else
+            {
+                //localizable paths (without SEO code)
+                sb.AppendFormat("Sitemap: {0}sitemap.xml", _storeContext.CurrentStore.Url);
                 sb.Append(newLine);
-                //sitemaps
-                if (_localizationSettings.SeoFriendlyUrlsForLanguagesEnabled)
+            }
+
+            //usual paths
+            foreach (var path in disallowPaths)
+            {
+                sb.AppendFormat("Disallow: {0}", path);
+                sb.Append(newLine);
+            }
+            //localizable paths (without SEO code)
+            foreach (var path in localizableDisallowPaths)
+            {
+                sb.AppendFormat("Disallow: {0}", path);
+                sb.Append(newLine);
+            }
+            if (_localizationSettings.SeoFriendlyUrlsForLanguagesEnabled)
+            {
+                //URLs are localizable. Append SEO code
+                foreach (var language in _languageService.GetAllLanguages(storeId: _storeContext.CurrentStore.Id))
                 {
-                    //URLs are localizable. Append SEO code
-                    foreach (var language in _languageService.GetAllLanguages(storeId: _storeContext.CurrentStore.Id))
+                    foreach (var path in localizableDisallowPaths)
                     {
-                        sb.AppendFormat("Sitemap: {0}{1}/sitemap.xml", _storeContext.CurrentStore.Url, language.UniqueSeoCode);
+                        sb.AppendFormat("Disallow: {0}{1}", language.UniqueSeoCode, path);
                         sb.Append(newLine);
                     }
-                }
-                else
-                {
-                    //localizable paths (without SEO code)
-                    sb.AppendFormat("Sitemap: {0}sitemap.xml", _storeContext.CurrentStore.Url);
-                    sb.Append(newLine);
-                }
-
-                //usual paths
-                foreach (var path in disallowPaths)
-                {
-                    sb.AppendFormat("Disallow: {0}", path);
-                    sb.Append(newLine);
-                }
-                //localizable paths (without SEO code)
-                foreach (var path in localizableDisallowPaths)
-                {
-                    sb.AppendFormat("Disallow: {0}", path);
-                    sb.Append(newLine);
-                }
-                if (_localizationSettings.SeoFriendlyUrlsForLanguagesEnabled)
-                {
-                    //URLs are localizable. Append SEO code
-                    foreach (var language in _languageService.GetAllLanguages(storeId: _storeContext.CurrentStore.Id))
-                    {
-                        foreach (var path in localizableDisallowPaths)
-                        {
-                            sb.AppendFormat("Disallow: {0}{1}", language.UniqueSeoCode, path);
-                            sb.Append(newLine);
-                        }
                     }
                 }
 
@@ -1003,7 +1056,7 @@ namespace Nop.Web.Controllers
 
         //store is closed
         //available even when a store is closed
-        [StoreClosed(true)] 
+        [StoreClosed(true)]
         public ActionResult StoreClosed()
         {
             return View();

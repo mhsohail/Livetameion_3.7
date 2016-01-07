@@ -21,15 +21,18 @@ namespace Nop.Plugin.Misc.VendorMembership.Services
         private readonly IRepository<GenericAttribute> _genericAttributeRepo;
         private readonly IRepository<VendorType> _vendorTypeRepository;
         private readonly IRepository<VendorVendorType> _vendorVendorTypeRepository;
+        private readonly IRepository<VendorNote> _vendorNoteRepository;
 
         public MultitenantService(IRepository<Vendor> vendorRepository,
             IEventPublisher eventPublisher,
             IRepository<GenericAttribute> genericAttributeRepo,
             IRepository<VendorType> vendorTypeRepository,
-            IRepository<VendorVendorType> vendorVendorTypeRepository)
-            : base(vendorRepository, eventPublisher)
+            IRepository<VendorVendorType> vendorVendorTypeRepository,
+            IRepository<VendorNote> vendorNoteRepository)
+            : base(vendorRepository, vendorNoteRepository, eventPublisher)
         {
             _vendorRepository = vendorRepository;
+            _vendorNoteRepository = vendorNoteRepository;
             _eventPublisher = eventPublisher;
             _genericAttributeRepo = genericAttributeRepo;
             _vendorTypeRepository = vendorTypeRepository;

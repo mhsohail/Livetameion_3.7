@@ -1,0 +1,36 @@
+﻿@model IList<Nop.Plugin.Misc.VendorMembership.ViewModels.ProductSpecificationAttributeModel>
+@using (Html.BeginForm(null, null, FormMethod.Post, new { id = "product-form" }))
+{
+    foreach (var productAttribute in Model)
+    {
+        @Html.HiddenFor(model => Model[Model.IndexOf(productAttribute)].Id)
+        @Html.EditorFor(model => Model[Model.IndexOf(productAttribute)].AttributeTypeName)
+        <br />
+        @Html.DisplayFor(model => Model[Model.IndexOf(productAttribute)].AttributeName)
+        <br />
+        @Html.EditorFor(model => Model[Model.IndexOf(productAttribute)].AttributeTypeId)
+        <br />
+        if (Model[Model.IndexOf(productAttribute)].AvailableOptions.Count > 1)
+        {
+            @Html.DropDownListFor(model => Model[Model.IndexOf(productAttribute)].SpecificationAttributeOptionId, Model[Model.IndexOf(productAttribute)].AvailableOptions);
+            @Html.HiddenFor(model => Model[Model.IndexOf(productAttribute)].ValueRaw)
+        }
+        else
+        {
+            @Html.HiddenFor(model => Model[Model.IndexOf(productAttribute)].SpecificationAttributeOptionId);
+            @Html.EditorFor(model => Model[Model.IndexOf(productAttribute)].ValueRaw)
+        }
+        <br />
+        @Html.EditorFor(model => Model[Model.IndexOf(productAttribute)].ProductId)
+        <br />
+        @Html.EditorFor(model => Model[Model.IndexOf(productAttribute)].CustomValue)
+        <br />
+        @Html.EditorFor(model => Model[Model.IndexOf(productAttribute)].AllowFiltering)
+        <br />
+        @Html.EditorFor(model => Model[Model.IndexOf(productAttribute)].ShowOnProductPage)
+        <br />
+        @Html.EditorFor(model => Model[Model.IndexOf(productAttribute)].DisplayOrder)
+        <br /><hr><br />
+    }
+    <input type="submit" value="Save" />
+}

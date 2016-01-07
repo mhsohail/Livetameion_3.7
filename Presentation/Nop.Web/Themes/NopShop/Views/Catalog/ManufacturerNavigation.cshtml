@@ -1,0 +1,53 @@
+﻿@model ManufacturerNavigationModel
+@using Nop.Web.Models.Catalog;
+@if (Model.Manufacturers.Count > 0)
+{
+
+
+    <div style="padding-top:20px;">
+     <div class="block block-layered-nav block-layered-nav--no-filters">
+          <div class="block-title">
+               <strong><span>@T("Manufacturers")</span></strong>
+          </div>
+          <div class="block-content toggle-content open accordion-open">
+               <p class="block-subtitle block-subtitle--filter">Filter</p>
+              
+                  
+                      @foreach(var manufacturer in Model.Manufacturers)
+                      {
+                             <dl id="narrow-by-list2">
+                                      <div class="panel panel-default">                        
+                                           <div class="panel-heading">
+                                                  <h4 class="panel-title">
+                                                        <a data-toggle="collapse" class="@(manufacturer.IsActive ? "active" : "inactive")" data-parent="#accordian" href="#@manufacturer.Id">
+                                                                 <a href="@Url.RouteUrl("Manufacturer", new { SeName = manufacturer.SeName })"> @manufacturer.Name</a>
+                                                        </a>
+                                                  </h4>
+                                           </div>                       
+                                      </div>
+                             </dl> 
+                      }                                            
+                  
+                                       
+          </div>
+     </div>
+</div>
+
+
+
+    @*<div class="brands_products"><!--brands_products-->
+        <h2>@T("Manufacturers")</h2>
+        <div class="brands-name">
+            <ul class="nav nav-pills nav-stacked">
+                @foreach (var manufacturer in Model.Manufacturers)
+                {
+
+                   
+                    <li class="@(manufacturer.IsActive ? "active" : "inactive")"><a href="@Url.RouteUrl("Manufacturer", new { SeName = manufacturer.SeName })">@manufacturer.Name</a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>*@
+<!--/brands_products-->   
+}

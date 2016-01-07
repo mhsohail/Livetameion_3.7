@@ -31,6 +31,7 @@ using Nop.Services.Payments;
 using Nop.Services.Security;
 using Nop.Services.Shipping;
 using Nop.Services.Stores;
+using Nop.Services.Tax;
 using Nop.Services.Vendors;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Controllers;
@@ -52,7 +53,9 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
         private readonly IOrderService _orderService;
         private readonly IOrderReportService _orderReportService;
         private readonly IOrderProcessingService _orderProcessingService;
+        private readonly IReturnRequestService _returnRequestService;
         private readonly IPriceCalculationService _priceCalculationService;
+        private readonly ITaxService _taxService;
         private readonly IDateTimeHelper _dateTimeHelper;
         private readonly IPriceFormatter _priceFormatter;
         private readonly IDiscountService _discountService;
@@ -94,15 +97,17 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
         private readonly AddressSettings _addressSettings;
         private readonly ShippingSettings _shippingSettings;
 
-		#endregion
+        #endregion
 
-		#region Ctor
-		public OrdersController() { }
+        #region Ctor
+        public OrdersController() { }
 
         public OrdersController(IOrderService orderService,
             IOrderReportService orderReportService,
             IOrderProcessingService orderProcessingService,
+            IReturnRequestService returnRequestService,
             IPriceCalculationService priceCalculationService,
+            ITaxService taxService,
             IDateTimeHelper dateTimeHelper,
             IPriceFormatter priceFormatter,
             IDiscountService discountService,
@@ -146,7 +151,9 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
             this._orderService = orderService;
             this._orderReportService = orderReportService;
             this._orderProcessingService = orderProcessingService;
+            this._returnRequestService = returnRequestService;
             this._priceCalculationService = priceCalculationService;
+            this._taxService = taxService;
             this._dateTimeHelper = dateTimeHelper;
             this._priceFormatter = priceFormatter;
             this._discountService = discountService;
@@ -612,7 +619,7 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
                 }
 
                 //return requests
-                orderItemModel.ReturnRequestIds = _orderService.SearchReturnRequests(orderItemId: orderItem.Id)
+                orderItemModel.ReturnRequestIds = _returnRequestService.SearchReturnRequests(orderItemId: orderItem.Id)
                     .Select(rr => rr.Id).ToList();
                 //gift cards
                 orderItemModel.PurchasedGiftCardIds = _giftCardService.GetGiftCardsByPurchasedWithOrderItemId(orderItem.Id)
@@ -631,17 +638,27 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
             if (product == null)
                 throw new ArgumentException("No product found with the specified id");
 
+            var order = _orderService.GetOrderById(orderId);
+            if (order == null)
+                throw new ArgumentException("No order found with the specified id");
+
+            var presetQty = 1;
+            var presetPrice = _priceCalculationService.GetFinalPrice(product, order.Customer, decimal.Zero, true, presetQty);
+            decimal taxRate;
+            decimal presetPriceInclTax = _taxService.GetProductPrice(product, presetPrice, true, order.Customer, out taxRate);
+            decimal presetPriceExclTax = _taxService.GetProductPrice(product, presetPrice, false, order.Customer, out taxRate);
+
             var model = new OrderModel.AddOrderProductModel.ProductDetailsModel
             {
                 ProductId = productId,
                 OrderId = orderId,
                 Name = product.Name,
                 ProductType = product.ProductType,
-                UnitPriceExclTax = decimal.Zero,
-                UnitPriceInclTax = decimal.Zero,
-                Quantity = 1,
-                SubTotalExclTax = decimal.Zero,
-                SubTotalInclTax = decimal.Zero
+                UnitPriceExclTax = presetPriceExclTax,
+                UnitPriceInclTax = presetPriceInclTax,
+                Quantity = presetQty,
+                SubTotalExclTax = presetPriceExclTax,
+                SubTotalInclTax = presetPriceInclTax
             };
 
             //attributes
@@ -795,17 +812,14 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
         }
 
         //#endregion
-        
+
         #region Order list
 
         public ActionResult Index()
         {
-            var c = _workContext.CurrentCustomer;
-            var v = _workContext.CurrentVendor;
-            
             return RedirectToAction("List");
         }
-        
+
         public ActionResult List(int? orderStatusId = null,
             int? paymentStatusId = null, int? shippingStatusId = null)
         {
@@ -867,7 +881,7 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
                 model.AvailablePaymentMethods.Add(new SelectListItem { Text = pm.PluginDescriptor.FriendlyName, Value = pm.PluginDescriptor.SystemName });
 
             //billing countries
-            foreach (var c in _countryService.GetAllCountriesForBilling(true))
+            foreach (var c in _countryService.GetAllCountriesForBilling(showHidden: true))
             {
                 model.AvailableCountries.Add(new SelectListItem { Text = c.Name, Value = c.Id.ToString() });
             }
@@ -911,14 +925,15 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
                 //vendorId: model.VendorId,
                 productId: filterByProductId,
                 warehouseId: model.WarehouseId,
-                billingCountryId: model.BillingCountryId,
                 paymentMethodSystemName: model.PaymentMethodSystemName,
                 createdFromUtc: startDateValue,
                 createdToUtc: endDateValue,
                 os: orderStatus,
                 ps: paymentStatus,
                 ss: shippingStatus,
-                billingEmail: model.CustomerEmail,
+                billingEmail: model.BillingEmail,
+                billingLastName: model.BillingLastName,
+                billingCountryId: model.BillingCountryId,
                 orderNotes: model.OrderNotes,
                 orderGuid: model.OrderGuid,
                 pageIndex: command.Page - 1,
@@ -949,7 +964,6 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
             var reportSummary = _orderReportService.GetOrderAverageReportLine(
                 storeId: model.StoreId,
                 vendorId: model.VendorId,
-                billingCountryId: model.BillingCountryId,
                 orderId: 0,
                 paymentMethodSystemName: model.PaymentMethodSystemName,
                 os: orderStatus,
@@ -957,19 +971,22 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
                 ss: shippingStatus,
                 startTimeUtc: startDateValue,
                 endTimeUtc: endDateValue,
-                billingEmail: model.CustomerEmail,
+                billingEmail: model.BillingEmail,
+                billingLastName: model.BillingLastName,
+                billingCountryId: model.BillingCountryId,
                 orderNotes: model.OrderNotes);
             var profit = _orderReportService.ProfitReport(
                 storeId: model.StoreId,
                 vendorId: model.VendorId,
-                billingCountryId: model.BillingCountryId,
                 paymentMethodSystemName: model.PaymentMethodSystemName,
                 os: orderStatus,
                 ps: paymentStatus,
                 ss: shippingStatus,
                 startTimeUtc: startDateValue,
                 endTimeUtc: endDateValue,
-                billingEmail: model.CustomerEmail,
+                billingEmail: model.BillingEmail,
+                billingLastName: model.BillingLastName,
+                billingCountryId: model.BillingCountryId,
                 orderNotes: model.OrderNotes);
             var primaryStoreCurrency = _currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId);
             if (primaryStoreCurrency == null)
@@ -1065,14 +1082,15 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
         //        vendorId: model.VendorId,
         //        productId: filterByProductId,
         //        warehouseId: model.WarehouseId,
-        //        billingCountryId: model.BillingCountryId,
         //        paymentMethodSystemName: model.PaymentMethodSystemName,
         //        createdFromUtc: startDateValue,
         //        createdToUtc: endDateValue,
         //        os: orderStatus,
         //        ps: paymentStatus,
         //        ss: shippingStatus,
-        //        billingEmail: model.CustomerEmail,
+        //        billingEmail: model.BillingEmail,
+        //        billingLastName: model.BillingLastName,
+        //        billingCountryId: model.BillingCountryId,
         //        orderNotes: model.OrderNotes,
         //        orderGuid: model.OrderGuid);
 
@@ -1143,14 +1161,15 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
         //        vendorId: model.VendorId,
         //        productId: filterByProductId,
         //        warehouseId: model.WarehouseId,
-        //        billingCountryId: model.BillingCountryId,
         //        paymentMethodSystemName: model.PaymentMethodSystemName,
         //        createdFromUtc: startDateValue,
         //        createdToUtc: endDateValue,
         //        os: orderStatus,
         //        ps: paymentStatus,
         //        ss: shippingStatus,
-        //        billingEmail: model.CustomerEmail,
+        //        billingEmail: model.BillingEmail,
+        //        billingLastName: model.BillingLastName,
+        //        billingCountryId: model.BillingCountryId,
         //        orderNotes: model.OrderNotes,
         //        orderGuid: model.OrderGuid);
 
@@ -1663,14 +1682,15 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
                 vendorId: model.VendorId,
                 productId: filterByProductId,
                 warehouseId: model.WarehouseId,
-                billingCountryId: model.BillingCountryId,
                 paymentMethodSystemName: model.PaymentMethodSystemName,
                 createdFromUtc: startDateValue,
                 createdToUtc: endDateValue,
                 os: orderStatus,
                 ps: paymentStatus,
                 ss: shippingStatus,
-                billingEmail: model.CustomerEmail,
+                billingEmail: model.BillingEmail,
+                billingLastName: model.BillingLastName,
+                billingCountryId: model.BillingCountryId,
                 orderNotes: model.OrderNotes,
                 orderGuid: model.OrderGuid);
 
@@ -1895,6 +1915,8 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
 
             if (quantity > 0)
             {
+                int qtyDifference = orderItem.Quantity - quantity;
+
                 orderItem.UnitPriceInclTax = unitPriceInclTax;
                 orderItem.UnitPriceExclTax = unitPriceExclTax;
                 orderItem.Quantity = quantity;
@@ -1903,9 +1925,17 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
                 orderItem.PriceInclTax = priceInclTax;
                 orderItem.PriceExclTax = priceExclTax;
                 _orderService.UpdateOrder(order);
+
+                //adjust inventory
+                _productService.AdjustInventory(orderItem.Product, qtyDifference, orderItem.AttributesXml);
+
             }
             else
             {
+                //adjust inventory
+                _productService.AdjustInventory(orderItem.Product, orderItem.Quantity, orderItem.AttributesXml);
+
+                //delete item
                 _orderService.DeleteOrderItem(orderItem);
             }
 
@@ -1972,6 +2002,10 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
             }
             else
             {
+                //adjust inventory
+                _productService.AdjustInventory(orderItem.Product, orderItem.Quantity, orderItem.AttributesXml);
+
+                //delete item
                 _orderService.DeleteOrderItem(orderItem);
 
                 //add a note
@@ -2282,7 +2316,7 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
             var attributes = _productAttributeService.GetProductAttributeMappingsByProductId(product.Id);
             foreach (var attribute in attributes)
             {
-                string controlId = string.Format("product_attribute_{0}_{1}", attribute.ProductAttributeId, attribute.Id);
+                string controlId = string.Format("product_attribute_{0}", attribute.Id);
                 switch (attribute.AttributeControlType)
                 {
                     case AttributeControlType.DropdownList:
@@ -2400,6 +2434,15 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
                         break;
                 }
             }
+            //validate conditional attributes (if specified)
+            foreach (var attribute in attributes)
+            {
+                var conditionMet = _productAttributeParser.IsConditionMet(attribute, attributesXml);
+                if (conditionMet.HasValue && !conditionMet.Value)
+                {
+                    attributesXml = _productAttributeParser.RemoveProductAttribute(attributesXml, attribute);
+                }
+            }
 
             #endregion
 
@@ -2505,6 +2548,9 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
                 order.OrderItems.Add(orderItem);
                 _orderService.UpdateOrder(order);
 
+                //adjust inventory
+                _productService.AdjustInventory(orderItem.Product, -orderItem.Quantity, orderItem.AttributesXml);
+
                 //add a note
                 order.OrderNotes.Add(new OrderNote
                 {
@@ -2600,10 +2646,10 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
 
             //countries
             model.Address.AvailableCountries.Add(new SelectListItem { Text = _localizationService.GetResource("Admin.Address.SelectCountry"), Value = "0" });
-            foreach (var c in _countryService.GetAllCountries(true))
+            foreach (var c in _countryService.GetAllCountries(showHidden: true))
                 model.Address.AvailableCountries.Add(new SelectListItem { Text = c.Name, Value = c.Id.ToString(), Selected = (c.Id == address.CountryId) });
             //states
-            var states = address.Country != null ? _stateProvinceService.GetStateProvincesByCountryId(address.Country.Id, true).ToList() : new List<StateProvince>();
+            var states = address.Country != null ? _stateProvinceService.GetStateProvincesByCountryId(address.Country.Id, showHidden: true).ToList() : new List<StateProvince>();
             if (states.Count > 0)
             {
                 foreach (var s in states)
@@ -2690,10 +2736,10 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
             model.Address.FaxRequired = _addressSettings.FaxRequired;
             //countries
             model.Address.AvailableCountries.Add(new SelectListItem { Text = _localizationService.GetResource("Admin.Address.SelectCountry"), Value = "0" });
-            foreach (var c in _countryService.GetAllCountries(true))
+            foreach (var c in _countryService.GetAllCountries(showHidden: true))
                 model.Address.AvailableCountries.Add(new SelectListItem { Text = c.Name, Value = c.Id.ToString(), Selected = (c.Id == address.CountryId) });
             //states
-            var states = address.Country != null ? _stateProvinceService.GetStateProvincesByCountryId(address.Country.Id, true).ToList() : new List<StateProvince>();
+            var states = address.Country != null ? _stateProvinceService.GetStateProvincesByCountryId(address.Country.Id, showHidden: true).ToList() : new List<StateProvince>();
             if (states.Count > 0)
             {
                 foreach (var s in states)
@@ -2719,7 +2765,7 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
         //    var model = new ShipmentListModel();
         //    //countries
         //    model.AvailableCountries.Add(new SelectListItem { Text = "*", Value = "0" });
-        //    foreach (var c in _countryService.GetAllCountries(true))
+        //    foreach (var c in _countryService.GetAllCountries(showHidden: true))
         //        model.AvailableCountries.Add(new SelectListItem { Text = c.Name, Value = c.Id.ToString() });
         //    //states
         //    model.AvailableStates.Add(new SelectListItem { Text = "*", Value = "0" });
@@ -3677,6 +3723,13 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
         //        return AccessDeniedView();
 
         //    var model = new BestsellersReportModel();
+        //    //vendor
+        //    model.IsLoggedInAsVendor = _workContext.CurrentVendor != null;
+
+        //    //stores
+        //    model.AvailableStores.Add(new SelectListItem { Text = _localizationService.GetResource("Admin.Common.All"), Value = "0" });
+        //    foreach (var s in _storeService.GetAllStores())
+        //        model.AvailableStores.Add(new SelectListItem { Text = s.Name, Value = s.Id.ToString() });
 
         //    //order statuses
         //    model.AvailableOrderStatuses = OrderStatus.Pending.ToSelectList(false).ToList();
@@ -3698,14 +3751,17 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
         //        model.AvailableManufacturers.Add(new SelectListItem { Text = m.Name, Value = m.Id.ToString() });
 
         //    //billing countries
-        //    foreach (var c in _countryService.GetAllCountriesForBilling(true))
+        //    foreach (var c in _countryService.GetAllCountriesForBilling(showHidden: true))
         //    {
         //        model.AvailableCountries.Add(new SelectListItem { Text = c.Name, Value = c.Id.ToString() });
         //    }
         //    model.AvailableCountries.Insert(0, new SelectListItem { Text = _localizationService.GetResource("Admin.Common.All"), Value = "0" });
 
-        //    //vendor
-        //    model.IsLoggedInAsVendor = _workContext.CurrentVendor != null;
+        //    //vendors
+        //    model.AvailableVendors.Add(new SelectListItem { Text = _localizationService.GetResource("Admin.Common.All"), Value = "0" });
+        //    var vendors = _vendorService.GetAllVendors(showHidden: true);
+        //    foreach (var v in vendors)
+        //        model.AvailableVendors.Add(new SelectListItem { Text = v.Name, Value = v.Id.ToString() });
 
         //    return View(model);
         //}
@@ -3716,9 +3772,10 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
         //        return Content("");
 
         //    //a vendor should have access only to his products
-        //    int vendorId = 0;
         //    if (_workContext.CurrentVendor != null)
-        //        vendorId = _workContext.CurrentVendor.Id;
+        //    {
+        //        model.VendorId = _workContext.CurrentVendor.Id;
+        //    }
 
         //    DateTime? startDateValue = (model.StartDate == null) ? null
         //                    : (DateTime?)_dateTimeHelper.ConvertToUtcTime(model.StartDate.Value, _dateTimeHelper.CurrentTimeZone);
@@ -3736,9 +3793,10 @@ namespace Nop.Plugin.Misc.VendorMembership.Controllers
         //        ps: paymentStatus,
         //        billingCountryId: model.BillingCountryId,
         //        orderBy: 2,
-        //        vendorId: vendorId,
+        //        vendorId: model.VendorId,
         //        categoryId: model.CategoryId,
         //        manufacturerId: model.ManufacturerId,
+        //        storeId: model.StoreId,
         //        pageIndex: command.Page - 1,
         //        pageSize: command.PageSize,
         //        showHidden: true);

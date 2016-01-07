@@ -1,0 +1,114 @@
+﻿@model FooterModel
+@using Nop.Web.Extensions
+@using Nop.Web.Models.Common;
+@using Nop.Core
+@using Nop.Core.Domain.Tax
+@using Nop.Core.Infrastructure
+
+
+
+
+
+<!--/Footer-->
+
+
+<div class="footer">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12 text-center"> <img src="~/Themes/NopShop/Content/css/images/footer-logo.jpg"  /> </div>
+    </div>
+    <div class="row">
+      <div class="col-md-3"> </div>
+      <div class="col-md-6">
+        <div class="row">
+          <div class="col-md-4 col-sm-4">
+            <ul>
+                @foreach (var topic in Model.Topics.Where(x => x.IncludeInFooterColumn1).ToList())
+                {
+                       <li><a href="@Url.RouteUrl("Topic", new { SeName = topic.SeName })">@topic.Name</a></li>
+                }
+               
+             <li><a href="#">how it work</a></li>
+            </ul>
+          </div>
+          <div class="col-md-4 col-sm-4">
+            <ul>
+                 <li><a href="#">Agents</a></li>
+              <li><a href="#">Consumers</a></li>
+              <li><a href="#">Non-Profits</a></li>
+              @* <li><a href="@Url.RouteUrl("ProductSearch")">@T("Search")</a> </li>
+                                @if (Model.NewsEnabled)
+                                {
+                                    <li><a href="@Url.RouteUrl("NewsArchive")">@T("News")</a></li>
+                                }
+                                @if (Model.BlogEnabled)
+                                {
+                                    <li><a href="@Url.RouteUrl("Blog")">@T("Blog")</a></li>
+                                }
+                                @if (Model.ForumEnabled)
+                                {
+                                    <li><a href="@Url.RouteUrl("Boards")">@T("Forum.Forums")</a></li>
+                                }
+                                @if (Model.RecentlyViewedProductsEnabled)
+                                {
+                                    <li><a href="@Url.RouteUrl("RecentlyViewedProducts")">@T("Products.RecentlyViewedProducts")</a></li>
+                                }
+                                @if (Model.CompareProductsEnabled)
+                                {
+                                    <li><a href="@Url.RouteUrl("CompareProducts")">@T("Products.Compare.List")</a></li>
+                                }
+                                @if (Model.RecentlyAddedProductsEnabled)
+                                {
+                                    <li><a href="@Url.RouteUrl("RecentlyAddedProducts")">@T("Products.NewProducts")</a></li>
+                                }*@
+            </ul>
+          </div>
+          <div class="col-md-4 col-sm-4">
+            <ul>
+                               @* <li><a href="@Url.RouteUrl("CustomerInfo")" class="account">@T("Account.MyAccount")</a></li>
+                                @if (!Model.HideOrders)
+                                {
+                                    <li><a href="@Url.RouteUrl("CustomerOrders")">@T("Account.CustomerOrders")</a></li>
+                                }
+                                @if (!Model.HideAddresses)
+                                {
+                                    <li><a href="@Url.RouteUrl("CustomerAddresses")" class="">@T("Account.CustomerAddresses")</a></li>
+                                }
+                                @if (Model.ShoppingCartEnabled)
+                                {
+                                    <li><a href="@Url.RouteUrl("ShoppingCart")" class="ico-cart">@T("ShoppingCart")</a></li>
+                                }
+                                @if (Model.WishlistEnabled)
+                                {
+                                    <li><a href="@Url.RouteUrl("Wishlist")" class="ico-wishlist">@T("Wishlist")</a></li>
+                                }*@
+              <li><a href="#">vendor Enrollment</a></li>
+              <li><a href="#">Group Deal Enrollment</a></li>
+              <li><a href="#">Coupon Validation</a></li>
+              <li><a href="#">Join us</a></li>
+              <li><a href="#">Affilliates</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3"> </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6"> </div>
+      <div class="col-md-6"> </div>
+      <div class="col-md-6"> </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer-bottom">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12">
+        <p class="text-center">&copy;2015 Madison lsland. All Rights Reserved.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
